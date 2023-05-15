@@ -396,3 +396,22 @@ mixture_vars = {
     'cur': ['wu', 'wv'],
     'win': ['u10', 'v10']
 }
+
+ele_dir = {
+    'sst': {
+        'Uc': 'TEM'
+    },
+    'sss': {
+        'Uc': 'SAL'
+    },
+    'swh': {
+        'Uc': 'wave'
+    },
+    'win': {
+        'Uc': 'windUc',
+        'Grb': 'windGrb'
+    },
+    'cur': {
+        'Uc': 'TEM'
+    }
+}
