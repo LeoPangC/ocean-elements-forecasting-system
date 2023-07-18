@@ -1,18 +1,15 @@
 models_path = {
-    'u10_r1': 'u10/u10_r1_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'v10_r1': 'v10/v10_r1_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'u10_r2': 'u10/u10_r2_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'v10_r2': 'v10/v10_r2_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'swh_r1': 'swh/swh_r1_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'swh_r2': 'swh/swh_r2_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
+    'u10_r1': 'u10/single_ConvLSTM_u__single_ConvLSTM_s_e98.h5',
+    'v10_r1': 'v10/single_ConvLSTM_u__single_ConvLSTM_s_e101.h5',
+    'swh_r1': 'swh/single_ConvLSTM_u__single_ConvLSTM_s_e17.h5',
     'wu_r1': 'w_u/w_u_r1_U_current.h5',
-    'wu_r2': 'w_u/w_u_r2_U_current.h5',
     'wv_r1': 'w_v/w_v_r1_V_current.h5',
-    'wv_r2': 'w_v/w_v_r2_V_current.h5',
-    'sst_r1': 'sst/sst_r1_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'sst_r2': 'sst/sst_r2_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'sss_r1': 'sss/sss_r1_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5',
-    'sss_r2': 'sss/sss_r2_single_ConvLSTM_u__single_ConvLSTM_s_e100.h5'
+    'sst_r1': 'sst/single_ConvLSTM_u__single_ConvLSTM_s_e61.h5',
+    'sss_r1': 'sss/single_ConvLSTM_u__single_ConvLSTM_s_e200.h5',
+    'bc_u10': 'bc_u10/3CNN_244_u10.h5',
+    'bc_v10': 'bc_v10/3CNN_260_v10.h5',
+    '3DS': '3D_Salinity',
+    '3DT': '3D_Temperature'
 }
 
 # sst和sss的两种数据未知
@@ -130,8 +127,8 @@ lat_lon_cut = {
     'sst': {
         'r1': [
             {
-                'lat': (0, 36),
-                'lon': (55, 91),
+                'lat': (136, 205),
+                'lon': (300, 353),
                 'step': 1
             },
             {
@@ -156,8 +153,8 @@ lat_lon_cut = {
     'sss': {
         'r1': [
             {
-                'lat': (0, 36),
-                'lon': (55, 91),
+                'lat': (0, 102),
+                'lon': (0, 102),
                 'step': 1
             },
             {
@@ -264,11 +261,11 @@ region = {
     },
     'sst': {
         'r1': {
-            'south': 15,
-            'north': 18.5,
-            'west': 110.5,
-            'east': 114,
-            'step': 0.1
+            'south': 4,
+            'north': 21,
+            'west': 105,
+            'east': 118,
+            'step': 0.25
         },
         'r2': {
             'south': 18,
@@ -281,9 +278,9 @@ region = {
     'sss': {
         'r1': {
             'south': 15,
-            'north': 18.5,
-            'west': 110.5,
-            'east': 114,
+            'north': 25,
+            'west': 105,
+            'east': 115,
             'step': 0.1
         },
         'r2': {
@@ -300,16 +297,16 @@ region = {
 max_min = {
     'r1': {
         'u10': {
-            'max': 26.80657958984375,
-            'min': -31.98837208273438
+            'max': 23.395458,
+            'min': -25.674194
         },
         'v10': {
-            'max': 29.104354858398438,
-            'min': -28.124863731723412
+            'max': 24.201258,
+            'min': -24.86848
         },
         'swh': {
-            'max': 0.0,
-            'min': 13.766881942749023
+            'max': 10.16,
+            'min': 0.01
         },
         'wu': {
             'max': 1.0,
@@ -320,44 +317,54 @@ max_min = {
             'min': -4.0
         },
         'sst': {
-            'max': 31.34875,
-            'min': 20.29375
+            'max': 38.20107421875002,
+            'min': 11.959863281250023
         },
         'sss': {
-            'max': 35.136,
-            'min': 31.992
+            'max': 35.060073223896325,
+            'min': 24.42887927562697
+        },
+        'bc_u10': {
+            'max': 21.595853753065384,
+            'min': -24.532222501514845
+        },
+        'bc_v10': {
+            'max': 27.40936279296875,
+            'min': -24.59051513671875
+        }
+    }
+}
+
+# 3D归一化
+max_min_3D = {
+    '3DT': {
+        0: {
+            'max': 318.66748,
+            'min': 268.41586
+            },
+        1: {
+            'max': 317.00668,
+            'min': 267.2094
+        },
+        2: {
+            'max': 315.33795,
+            'min': 265.6961
+        },
+        3: {
+            'max': 313.6513,
+            'min': 264.16827
+        },
+        4: {
+            'max': 311.90735,
+            'min': 263.02158
         }
     },
-    'r2': {
-        'u10': {
-            'max': 27.908113217056584,
-            'min': -29.056054158065447
-        },
-        'v10': {
-            'max': 31.02163502751372,
-            'min': -27.03924412878921
-        },
-        'swh': {
-            'max': 0.0,
-            'min': 11.986807117124465
-        },
-        'wu': {
-            'max': 1.0,
-            'min': 0.0
-        },
-        'wv': {
-            'max': 1.0,
-            'min': -1.0
-        },
-        'sst': {
-            'max': 31.30125,
-            'min': 15.4375
-        },
-        'sss': {
-            'max': 35.315,
-            'min': 32.28
-        },
-    },
+    '3DS': {
+        0: {
+            'max': 35.060073223896325,
+            'min': 24.42887927562697
+        }
+    }
 }
 
 # sst和sss未知
@@ -367,7 +374,7 @@ variables = {
     'swh': 'H03',
     'wu': 'CUR',
     'wv': 'CVR',
-    'sst': 'TEM',
+    'sst': 'Temperature',
     'sss': 'SAL'
 }
 
@@ -378,7 +385,7 @@ var_folder = {
             'u10': 'windU',
             'v10': 'windV'
         },
-        'windUc': {
+        '': {
             'u10': 'UT',
             'v10': 'VT'
         }
@@ -388,30 +395,69 @@ var_folder = {
             'wu': 'CUR',
             'wv': 'CVR'
         }
-    }
+    },
+    'swh': {
+        'H03': {
+            'swh': ''
+        }
+    },
+    'sst': {
+        'TT': {
+            'sst': ''
+        }
+    },
+    '3DT': {
+        'TT': {
+            '3DT': ''
+        }
+    },
+    '3DS': {
+        'SAL': {
+            '3DS': ''
+        }
+    },
 }
 
 
 mixture_vars = {
     'cur': ['wu', 'wv'],
-    'win': ['u10', 'v10']
+    'win': ['u10', 'v10'],
+    'swh': ['swh'],
+    'sst': ['sst'],
+    '3DT': ['3DT'],
+    '3DS': ['3DS']
 }
 
+# 元素数据存储文件
 ele_dir = {
     'sst': {
-        'Uc': 'TEM'
+        'Uc': 'TT'
     },
     'sss': {
         'Uc': 'SAL'
     },
     'swh': {
-        'Uc': 'wave'
+        'Uc': 'H03'
     },
     'win': {
-        'Uc': 'windUc',
+        'Uc': '',
         'Grb': 'windGrb'
     },
     'cur': {
-        'Uc': 'TEM'
+        'Uc': 'Current'
+    },
+    '3DS': {
+        'Uc': 'SAL'
+    },
+    '3DT': {
+        'Uc': 'TT'
     }
+}
+
+ele_floder = {
+    'sst': 'TT',
+    'sss': 'SAL',
+    'swh': 'H03',
+    'win': 'wind',
+    'cur': 'Uc',
 }
