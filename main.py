@@ -2,7 +2,7 @@ import argparse
 import os
 import datetime
 from parameters import ele_dir
-from get_elements import predict_sal, predict_elements, bias_correction, predict_sst, predict_3DT, predict_3DS
+from get_elements import predict_sal, predict_elements, bias_correction, predict_3DT, predict_3DS
 
 parser = argparse.ArgumentParser(description='Ocean-Elements-Forecasting-System')
 
@@ -32,7 +32,7 @@ if args.mode == 'F':
     if args.element == 'sss':
         # 本身是北京时间，所以不用变
         date_time = BJS.strftime('%Y%m%d')
-        predict_sal(path, ele_dir[args.element][args.type], date_time, args)
+        predict_sal(path, ele_dir[args.element][args.type], date_time, args.element, args)
     elif args.element == '3DS':
         date_time = BJS.strftime('%Y%m%d')
         predict_3DS(path, ele_dir[args.element][args.type], date_time, args)
@@ -48,7 +48,7 @@ if args.mode == 'F':
         if args.element == '3DT':
             predict_3DT(path, source_1, source_2, args)
         else:
-            predict_elements(path, source_1, source_2, args)
+            predict_elements(path, source_1, source_2, args.element, args)
 elif args.mode == 'C':
     date_time = BJS + datetime.timedelta(hours=-12)
     date_time = date_time.strftime('%Y%m%d%H%M%S')

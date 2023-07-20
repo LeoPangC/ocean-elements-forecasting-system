@@ -91,7 +91,7 @@ def save_figs(fig_name='predictFig', absolute_path='', var_simple='cur', region=
 
 # 2023.5.15 增加需求：存储为asc文件
 # 2023.6.7 增加四个边框
-def get_asc_header_archor(tar_data, lon, lat, step, gap=0):
+def get_asc_header_archor(tar_data, lon, lat, step, nodata=-32767, gap=0):
     (dimX, dimY) = tar_data.shape
     archor = np.zeros([dimX + 2 * gap, dimY + 2 * gap])
     if gap != 0:
@@ -106,7 +106,7 @@ def get_asc_header_archor(tar_data, lon, lat, step, gap=0):
     header += 'xllcorner    {}\n'.format(lon)
     header += 'yllcorner    {}\n'.format(lat)
     header += 'cellsize    {}\n'.format(step)
-    header += 'NODATA_value -32767\n'
+    header += 'NODATA_value {}}\n'.format(nodata)
     return header, archor
 
 

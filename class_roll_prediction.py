@@ -184,12 +184,12 @@ class RollPrediction(object):
             return data - 273.15
         return data
 
-    def save_asc(self, fig_name, lonX, latY, step, date, hour=None, mode='F'):
+    def save_asc(self, fig_name, lonX, latY, step, date, hour=None, nodata=-32767, mode='F'):
         asc_data = self.get_predict_result()[0]
         asc_data = np.flip(asc_data, axis=0)
         # asc_data = self.__swh_mask__(asc_data)
         asc_data = self.__k2c__(asc_data)
-        (header, asc_data) = get_asc_header_archor(asc_data, lonX, latY, step)
+        (header, asc_data) = get_asc_header_archor(asc_data, lonX, latY, step, nodata)
         date_dir_name = os.path.join(self.absolute_path, 'data/forcast', date)
         if not os.path.exists(date_dir_name):
             os.mkdir(date_dir_name)

@@ -129,7 +129,7 @@ class DataLoader(object):
         lat_lon = []
         for ll in ds.variables.keys():
             lat_lon.append(ll)
-        if element == 'sss':
+        if element == 'sss' or element == '3DS':
             # lat_s = list(ds.variables[lat_lon[2]][:, 0].data)
             # lon_s = list(ds.variables[lat_lon[3]][0, :].data)
             var_data = ds.variables[lat_lon[6]][:, depth, 919:1160, 2789:3030].data

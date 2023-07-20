@@ -4,12 +4,12 @@ import datetime
 from class_combat_data import CombatData
 from class_roll_prediction import RollPrediction
 from utils import save_json
-from parameters import models_path, max_min, var_folder, mixture_vars, max_min_3D
+from parameters import models_path, max_min, var_folder, mixture_vars, max_min_3D, NODATA
 
 
-def predict_elements(path, raw_data_dir_1, raw_data_dir_2, args):
+def predict_elements(path, raw_data_dir_1, raw_data_dir_2, element, args):
     # deg = 180.0 / np.pi
-    ele_vars = mixture_vars[args.element]
+    ele_vars = mixture_vars[element]
     # raw_data_folder路径问题如何修改
     lat = list(map(float, args.lat.split(',')))
     lon = list(map(float, args.lon.split(',')))
@@ -22,7 +22,7 @@ def predict_elements(path, raw_data_dir_1, raw_data_dir_2, args):
     }
     for vars_portion in ele_vars:
         dir_type = os.path.split(raw_data_dir_1)[-1]
-        folder_name = var_folder[args.element][dir_type][vars_portion]
+        folder_name = var_folder[element][dir_type][vars_portion]
         raw_data_folder_1 = '/'.join([raw_data_dir_1, folder_name])
         raw_data_folder_2 = '/'.join([raw_data_dir_2, folder_name])
 
@@ -41,7 +41,7 @@ def predict_elements(path, raw_data_dir_1, raw_data_dir_2, args):
         predict_data_2 = combatData_2.get_npy()
 
         predict_data = np.concatenate([predict_data_2[1:], predict_data_1], axis=0)
-        if args.element == 'sst':
+        if element == 'sst':
             average = np.mean(predict_data[predict_data != -32767.0])
             predict_data[predict_data == -32767.0] = average
             predict_data = predict_data - 273.15
@@ -56,15 +56,16 @@ def predict_elements(path, raw_data_dir_1, raw_data_dir_2, args):
 
         for i in range(40):
             var_prediction.predict_elements()
-            var_prediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8])
-            # pred_u.append(var_prediction.get_predict_result()[0])
+            var_prediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8],
+                                    nodata=NODATA[args.element])
             var_prediction.post_process()
+    return var_prediction.get_predict_result()
 
 
-def predict_sal(path, folder, date, args):
+def predict_sal(path, folder, date, element, args):
     predict_data = np.array([])
-    lat = list(map(float, args.lat.split(',')))
-    lon = list(map(float, args.lon.split(',')))
+    lat = [1.95, 25.95]
+    lon = [98.95, 122.95]
     choose_region = {
         'south': lat[0],
         'north': lat[1],
@@ -72,14 +73,14 @@ def predict_sal(path, folder, date, args):
         'east': lon[1],
         'step': float(args.resolution)
     }
-    # element_region = lat_lon_cut[args.element][args.region]
+
     date_time = datetime.datetime.strptime(date, '%Y%m%d')
     for day in range(15):
         date_time = date_time + datetime.timedelta(days=-1)
         date_time = date_time.strftime('%Y%m%d')
 
         combatData = CombatData(sub_folder=os.path.join(date_time, folder),
-                                var_simple=args.element,
+                                var_simple=element,
                                 region=args.region,
                                 absolute_path=path)
         combatData.trans_nc_to_npy(lat_lon=choose_region)
@@ -102,71 +103,22 @@ def predict_sal(path, folder, date, args):
     #                                 lon=(choose_region['west'], choose_region['east']))
 
 
-    rollPrediction = RollPrediction(var_simple=args.element,
+    rollPrediction = RollPrediction(var_simple=element,
                                     absolute_path=path,
-                                    model=models_path['_'.join([args.element, args.region])],
+                                    model=models_path['_'.join([element, args.region])],
                                     region=args.region,
                                     split_num=15,
-                                    data_max=max_min[args.region][args.element]['max'],
-                                    data_min=max_min[args.region][args.element]['min'])
+                                    data_max=max_min[args.region][element]['max'],
+                                    data_min=max_min[args.region][element]['min'])
     rollPrediction.data_pre_process(predict_data)
     # 预测天数
     for i in range(5):
         rollPrediction.predict_elements()
-        rollPrediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8])
+        rollPrediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8],
+                                nodata=NODATA[args.element])
         rollPrediction.post_process()
 
-
-def predict_sst(path, folder, date, args):
-    predict_data = np.array([])
-    # raw_data_folder路径问题如何修改
-    lat = list(map(float, args.lat.split(',')))
-    lon = list(map(float, args.lon.split(',')))
-    choose_region = {
-        'south': lat[0],
-        'north': lat[1],
-        'west': lon[0],
-        'east': lon[1],
-        'step': float(args.resolution)
-    }
-
-    date_time = datetime.datetime.strptime(date, '%Y%m%d')
-    for day in range(2):
-        date_time = date_time + datetime.timedelta(days=-1)
-        date_time = date_time.strftime('%Y%m%d')
-
-        root_dir = os.path.join(path, 'data', 'raw_data', os.path.join(date_time, folder))
-        data_files = [file for file in os.listdir(root_dir)]
-        for file in data_files:
-            npy_data = np.load(os.path.join(root_dir, file))
-            npy_data = npy_data[4:-4, 28:-28]
-            npy_data = np.flip(npy_data, axis=0)
-            # era5 无效数据替换为平均数据
-            average = np.mean(npy_data[npy_data != -32767.0])
-            npy_data[npy_data == -32767.0] = average
-            npy_data = npy_data - 273.15
-            npy_data = np.expand_dims(npy_data, axis=0)
-            try:
-                predict_data = np.concatenate((predict_data, npy_data))
-            except (UnboundLocalError, ValueError):
-                predict_data = npy_data
-
-        date_time = datetime.datetime.strptime(date_time, '%Y%m%d')
-
-    predict_data = predict_data[:15]
-    var_prediction = RollPrediction(var_simple=args.element,
-                                    absolute_path=path,
-                                    model=models_path['_'.join([args.element, args.region])],
-                                    region=args.region,
-                                    split_num=15,
-                                    data_max=max_min[args.region][args.element]['max'],
-                                    data_min=max_min[args.region][args.element]['min'])
-
-    var_prediction.data_pre_process(predict_data)
-    for i in range(4):
-        var_prediction.predict_elements()
-        var_prediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8])
-        var_prediction.post_process()
+    return rollPrediction.get_predict_result()
 
 
 def bias_correction(path, raw_data_dir, hour, args):
@@ -217,7 +169,6 @@ def bias_correction(path, raw_data_dir, hour, args):
 
 
 def predict_3DT(path, raw_data_dir_1, raw_data_dir_2, args):
-    result_3d = np.array([])
     # raw_data_folder路径问题如何修改
     lat = list(map(float, args.lat.split(',')))
     lon = list(map(float, args.lon.split(',')))
@@ -228,6 +179,8 @@ def predict_3DT(path, raw_data_dir_1, raw_data_dir_2, args):
         'east': lon[1],
         'step': float(args.resolution)
     }
+
+    result_3d = predict_elements(path, raw_data_dir_1[:-2]+'ERA5', raw_data_dir_2[:-2]+'ERA5', 'sst', args)
     model_folder = os.path.join(path, 'models', models_path[args.element])
     model_list = os.listdir(model_folder)
     model_list.sort()
@@ -262,19 +215,18 @@ def predict_3DT(path, raw_data_dir_1, raw_data_dir_2, args):
                                         data_min=max_min_3D[args.element][i]['min'])
 
         var_prediction.data_pre_process(predict_data)
-        var_prediction.predict_elements()
+        for roll in range(40):
+            var_prediction.predict_elements()
+            var_prediction.post_process()
         predict_result = var_prediction.get_predict_result()
-        try:
-            result_3d = np.concatenate((result_3d, predict_result))
-        except (UnboundLocalError, ValueError):
-            result_3d = predict_result
+        result_3d = np.concatenate((result_3d, predict_result))
     save_json(path, result_3d, '0', args.date[:8], args.element)
 
 
 def predict_3DS(path, folder, date, args):
     predict_data = np.array([])
-    lat = list(map(float, args.lat.split(',')))
-    lon = list(map(float, args.lon.split(',')))
+    lat = [1.95, 25.95]
+    lon = [98.95, 122.95]
     choose_region = {
         'south': lat[0],
         'north': lat[1],
@@ -283,11 +235,13 @@ def predict_3DS(path, folder, date, args):
         'step': float(args.resolution)
     }
 
-    date_time = datetime.datetime.strptime(date, '%Y%m%d')
+    surface_sal = predict_sal(path, folder, date, 'sss', args)
+    result_3d = surface_sal
     model_folder = os.path.join(path, 'models', models_path[args.element])
     model_list = os.listdir(model_folder)
     model_list.sort()
     for i, model in enumerate(model_list):
+        date_time = datetime.datetime.strptime(date, '%Y%m%d')
         for day in range(15):
             date_time = date_time + datetime.timedelta(days=-1)
             date_time = date_time.strftime('%Y%m%d')
@@ -312,9 +266,13 @@ def predict_3DS(path, folder, date, args):
                                         model=os.path.join(models_path[args.element], model),
                                         region=args.region,
                                         split_num=15,
-                                        data_max=max_min[args.element][i]['max'],
-                                        data_min=max_min[args.element][i]['min'])
+                                        data_max=max_min_3D[args.element][i]['max'],
+                                        data_min=max_min_3D[args.element][i]['min'])
 
         var_prediction.data_pre_process(predict_data)
-        var_prediction.predict_elements()
-        var_prediction.get_predict_result()[0]
+        for roll in range(5):
+            var_prediction.predict_elements()
+            var_prediction.post_process()
+        predict_result = var_prediction.get_predict_result()
+        result_3d = np.concatenate((result_3d, predict_result))
+    save_json(path, result_3d, '0', args.date[:8], args.element)
