@@ -106,7 +106,7 @@ def get_asc_header_archor(tar_data, lon, lat, step, nodata=-32767, gap=0):
     header += 'xllcorner    {}\n'.format(lon)
     header += 'yllcorner    {}\n'.format(lat)
     header += 'cellsize    {}\n'.format(step)
-    header += 'NODATA_value {}}\n'.format(nodata)
+    header += 'NODATA_value {}\n'.format(nodata)
     return header, archor
 
 
@@ -152,3 +152,19 @@ def save_json(absolute_path, data, fig_name, date, var_simple):
     json_path = os.path.join(asc_folder, 'Forcast' + var_simple + '_' + fig_name + '.json')
     with open(json_path, 'w') as f:
         json.dump(data.tolist(), f)
+
+
+def save_npy(absolute_path, data, fig_name, date, var_simple):
+    if var_simple == '3DT':
+        data = data - 273.15
+    # data = np.flip(data, axis=0)
+    # data = np.reshape(data, (1, -1))
+    # data = np.squeeze(data)
+    date_dir_name = os.path.join(absolute_path, 'data/forcast', date)
+    if not os.path.exists(date_dir_name):
+        os.mkdir(date_dir_name)
+    npy_folder = os.path.join(date_dir_name, var_simple)
+    if not os.path.exists(npy_folder):
+        os.mkdir(npy_folder)
+    npy_path = os.path.join(npy_folder, 'Forcast' + var_simple + '_' + fig_name + '.npy')
+    np.save(npy_path, data)

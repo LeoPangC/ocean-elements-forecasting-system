@@ -44,6 +44,7 @@ class CombatData(object):
             #     self.nc_to_npy(lat=lat_lon[1]['lat'], lon=lat_lon[1]['lon'], step=lat_lon[1]['step'], nc_name=nc)
 
     def trans_nc_to_npy_one(self, lat_lon, hour=0):
+        assert hour % 3 == 0
         index = hour // 3
         nc = self.data_files[index]
         self.nc_to_npy(lat=(lat_lon['south'], lat_lon['north']),

@@ -207,3 +207,24 @@ class RollPrediction(object):
         with open(asc_path, 'wb') as f:
             f.write(bytes(header, 'utf-8'))
             np.savetxt(f, asc_data)
+
+    def save_npy(self, fig_name, date, hour=None, mode='F'):
+        npy_data = self.get_predict_result()[0]
+        npy_data = np.flip(npy_data, axis=0)
+        npy_data = self.__k2c__(npy_data)
+        date_dir_name = os.path.join(self.absolute_path, 'data/forcast', date)
+        if not os.path.exists(date_dir_name):
+            os.mkdir(date_dir_name)
+        if mode == 'F':
+            npy_folder = os.path.join(date_dir_name, self.var_simple)
+            if not os.path.exists(npy_folder):
+                os.mkdir(npy_folder)
+            npy_path = os.path.join(npy_folder, 'Forcast' + self.var_simple + '_' + fig_name + '.npy')
+        elif mode == 'C':
+            npy_folder = os.path.join(date_dir_name, 'bc_' + self.var_simple)
+            if not os.path.exists(npy_folder):
+                os.mkdir(npy_folder)
+            npy_path = os.path.join(npy_folder, fig_name + '_' + str(hour) + 'h.npy')
+
+        np.save(npy_path, npy_data)
+

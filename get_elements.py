@@ -3,14 +3,13 @@ import numpy as np
 import datetime
 from class_combat_data import CombatData
 from class_roll_prediction import RollPrediction
-from utils import save_json
+from utils import save_json, save_npy
 from parameters import models_path, max_min, var_folder, mixture_vars, max_min_3D, NODATA
 
 
 def predict_elements(path, raw_data_dir_1, raw_data_dir_2, element, args):
     # deg = 180.0 / np.pi
     ele_vars = mixture_vars[element]
-    # raw_data_folder路径问题如何修改
     lat = list(map(float, args.lat.split(',')))
     lon = list(map(float, args.lon.split(',')))
     choose_region = {
@@ -58,6 +57,7 @@ def predict_elements(path, raw_data_dir_1, raw_data_dir_2, element, args):
             var_prediction.predict_elements()
             var_prediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8],
                                     nodata=NODATA[args.element])
+            var_prediction.save_npy(str((i + 1) * 3), args.date[:8])
             var_prediction.post_process()
     return var_prediction.get_predict_result()
 
@@ -115,7 +115,8 @@ def predict_sal(path, folder, date, element, args):
     for i in range(5):
         rollPrediction.predict_elements()
         rollPrediction.save_asc(str((i + 1) * 3), lon[0], lat[0], choose_region['step'], args.date[:8],
-                                nodata=NODATA[args.element])
+                                nodata=NODATA[element])
+        rollPrediction.save_npy(str((i + 1) * 3), args.date[:8])
         rollPrediction.post_process()
 
     return rollPrediction.get_predict_result()
@@ -166,6 +167,7 @@ def bias_correction(path, raw_data_dir, hour, args):
                                         bc_min=max_min[args.region]['bc_'+bc_var]['min'])
         var_prediction.predict_elements()
         var_prediction.save_asc('bc_' + bc_var, lon[0], lat[0], choose_region['step'], args.date[:8], args.date[8:10], args.mode)
+        var_prediction.save_npy('bc_' + bc_var, args.date[:8])
 
 
 def predict_3DT(path, raw_data_dir_1, raw_data_dir_2, args):
@@ -219,8 +221,12 @@ def predict_3DT(path, raw_data_dir_1, raw_data_dir_2, args):
             var_prediction.predict_elements()
             var_prediction.post_process()
         predict_result = var_prediction.get_predict_result()
+        predict_result[mask] = -32767.0
+        if result_3d.shape[0] == 1:
+            result_3d[mask] = -32767.0
         result_3d = np.concatenate((result_3d, predict_result))
     save_json(path, result_3d, '0', args.date[:8], args.element)
+    save_npy(path, result_3d, '0', args.date[:8], args.element)
 
 
 def predict_3DS(path, folder, date, args):
@@ -252,6 +258,7 @@ def predict_3DS(path, folder, date, args):
                                     absolute_path=path)
             combatData.trans_nc_to_npy(lat_lon=choose_region)
             npy_data = combatData.get_npy()
+            mask = npy_data == -32767.0
             average = np.mean(npy_data[npy_data != -32767.0])
             npy_data[npy_data == -32767.0] = average
             try:
@@ -274,5 +281,9 @@ def predict_3DS(path, folder, date, args):
             var_prediction.predict_elements()
             var_prediction.post_process()
         predict_result = var_prediction.get_predict_result()
+        predict_result[mask] = -32767.0
+        if result_3d.shape[0] == 1:
+            result_3d[mask] = -32767.0
         result_3d = np.concatenate((result_3d, predict_result))
     save_json(path, result_3d, '0', args.date[:8], args.element)
+    save_npy(path, result_3d, '0', args.date[:8], args.element)
