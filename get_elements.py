@@ -383,37 +383,6 @@ def predict_3DT_test(path, folder, date, args):
     jsonData = result_3d[-1, :, :, :] + 100
     save_json(path, jsonData, '0', args.date[:8], args.element, mask[0])
 
-    # day_true = np.array([])
-    # for day in range(5):
-    #     load_time = load_time.strftime('%Y%m%d')
-    #     depth_true = np.array([])
-    #     for d in range(50):
-    #         combatData = CombatData(sub_folder=os.path.join(load_time, folder),
-    #                                 var_simple=args.element,
-    #                                 region=args.region,
-    #                                 absolute_path=path)
-    #         combatData.trans_nc_to_npy(lat_lon=choose_region, depth=d)
-    #         npy_data = combatData.get_npy()
-    #         try:
-    #             npy_data[npy_data == -32767.0] = average[d - 1]
-    #         except:
-    #             npy_data[npy_data == -32767.0] = average[0]
-    #         try:
-    #             depth_true = np.concatenate((depth_true, npy_data))
-    #         except:
-    #             depth_true = npy_data
-    #     depth_true = np.expand_dims(depth_true, axis=0)
-    #     try:
-    #         day_true = np.concatenate((day_true, depth_true))
-    #     except:
-    #         day_true = depth_true
-    #     load_time = datetime.datetime.strptime(load_time, '%Y%m%d')
-    #     load_time = load_time + datetime.timedelta(days=1)
-    # # 增加计算RMSE和COR的函数
-    # RMSE, COR = get_rmse_cor(day_true, result_3d)
-    # for c in range(5):
-    #     print('3DT的{}小时的RMSE是{} 相关系数是{}'.format((c+1)*24, RMSE[c]/50, COR[c]))
-
 
 def predict_3DS(path, folder, date, args):
     result_3d = np.array([])
