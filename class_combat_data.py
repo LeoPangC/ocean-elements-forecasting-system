@@ -133,8 +133,10 @@ class DataLoader(object):
         if element == 'sss' or element == '3DS':
             # lat_s = list(ds.variables[lat_lon[2]][:, 0].data)
             # lon_s = list(ds.variables[lat_lon[3]][0, :].data)
-            var_data = ds.variables[lat_lon[6]][:, depth, 919:1160, 2789:3030].data
-        elif element == 'sst':
+            var_data = ds.variables[lat_lon[6]][:, depth, 920:1161, 2790:3031].data
+        elif element == '3DT':
+            var_data = ds.variables[lat_lon[5]][:, depth, 920:1161, 2790:3031].data
+        elif element == 'sst' or element == 'era5_u10' or element == 'era5_v10':
             lat_s = list(ds.variables[lat_lon[1]][:].data)
             lon_s = list(ds.variables[lat_lon[0]][:].data)
             var_data = ds.variables[lat_lon[-1]][:].data

@@ -3,11 +3,11 @@ import copy
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from sklearn import preprocessing
 # from cartopy import crs as ccrs
 # from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-from utils import create_dataset, get_asc_header_archor, get_asc_header
+from utils import create_dataset, get_asc_header_archor, fill_missing_values
 
 
 class RollPrediction(object):
@@ -93,6 +93,16 @@ class RollPrediction(object):
             elem_year_scaler_x = create_dataset(elem_year_scaler, self.split_num)
             self.elem_testX = np.expand_dims(elem_year_scaler_x, axis=-1)
 
+    def gat_rmse_cor_test(self, gt_data, gt_bias):
+        region = 4
+        predict_data = self.get_predict_result()[0]
+        w, h = predict_data.shape
+        rmse = np.sqrt(np.sum((gt_data - predict_data) ** 2) / (w*h*region))
+        gt_f = gt_data.flatten()
+        predict_f = predict_data.flatten()
+        cor = self.np.corrcoef(predict_f, gt_f)[0, -1]
+        return rmse, cor
+
     def predict_elements(self):
         """
         进行预测操作
@@ -104,6 +114,59 @@ class RollPrediction(object):
         self.s_test_predict_copy = self.__elem_data_min + self.s_test_predict_copy * (self.__elem_data_max - self.__elem_data_min)
         # for j in range(0, self.s_test_predict.shape[0]):
         #     self.s_test_predict_copy[j] = self.elem_scaler.inverse_transform(self.s_test_predict[j])
+
+    def data_pre_process_bc(self, npy_data, mode='F', bc_max=None, bc_min=None):
+        (c, self.dimX, self.dimY) = npy_data.shape
+
+        if self.var_simple == 'swh':
+            self.mask = copy.deepcopy(npy_data[0])
+            self.mask[np.where(self.mask > 100)] = -1
+            self.mask[np.where(self.mask > 0)] = 1
+            npy_data[np.where(npy_data > 100)] = 0
+
+        if self.data_min:
+            self.__elem_data_min = self.data_min
+        else:
+            self.__elem_data_min = np.min(npy_data)
+        if self.data_max:
+            self.__elem_data_max = self.data_max
+        else:
+            self.__elem_data_max = np.max(npy_data)
+
+        scaler_elem = np.zeros(shape=(self.dimX, self.dimY))
+        scaler_elem[0][:] = self.__elem_data_min
+        scaler_elem[-1][:] = self.__elem_data_max
+
+        # 实现归一化
+        self.elem_scaler = preprocessing.MinMaxScaler()
+        self.elem_scaler.fit(scaler_elem)
+        elem_year_scaler = np.zeros(npy_data.shape)
+        for j in range(0, npy_data.shape[0]):
+            elem_year_scaler[j] = self.elem_scaler.transform(npy_data[j])
+        # elem_year_scaler = (npy_data - self.__elem_data_min) / (self.__elem_data_max - self.__elem_data_min)
+
+        if mode == 'C':
+            # self.__elem_data_max = bc_max
+            # self.__elem_data_min = bc_min
+            scaler_elem[0][:] = bc_min
+            scaler_elem[-1][:] = bc_max
+            self.elem_scaler.fit(scaler_elem)
+            self.elem_testX = elem_year_scaler.reshape((1, self.dimX, self.dimY, c))
+        else:
+            elem_year_scaler_x = create_dataset(elem_year_scaler, self.split_num)
+            self.elem_testX = np.expand_dims(elem_year_scaler_x, axis=-1)
+
+
+    def bias_correct(self):
+        """
+        进行订正操作
+        """
+        self.s_test_predict = self.s_model.predict(self.elem_testX)
+        self.s_test_predict = self.s_test_predict[:, :, :, 0]
+        self.s_test_predict_copy = copy.deepcopy(self.s_test_predict)
+        # self.s_test_predict_copy = self.__elem_data_min + self.s_test_predict_copy * (self.__elem_data_max - self.__elem_data_min)
+        for j in range(0, self.s_test_predict.shape[0]):
+            self.s_test_predict_copy[j] = self.elem_scaler.inverse_transform(self.s_test_predict[j])
 
     def post_process(self):
         """
@@ -184,10 +247,18 @@ class RollPrediction(object):
             return data - 273.15
         return data
 
-    def save_asc(self, fig_name, lonX, latY, step, date, hour=None, nodata=-32767, mode='F'):
-        asc_data = self.get_predict_result()[0]
+    def save_asc(self, fig_name, lonX, latY, step, date, hour=None, nodata=-32767, mode='F', data=None):
+        # path = r'c: Users 18365\Desktop oceanVis static'
+        # date_dir_name = os.path.join(path, 'data/forcast', date)
+        if data is None:
+            asc_data = self.get_predict_result()[0]
+        else:
+            asc_data = data
+        r, c = asc_data.shape
+        mask = np.load(os.path.join(self.absolute_path, 'data/mask/mask_'+str(r)+'.npy'))
+        asc_data[mask] = np.nan
+        asc_data = fill_missing_values(asc_data)
         asc_data = np.flip(asc_data, axis=0)
-        # asc_data = self.__swh_mask__(asc_data)
         asc_data = self.__k2c__(asc_data)
         (header, asc_data) = get_asc_header_archor(asc_data, lonX, latY, step, nodata)
         date_dir_name = os.path.join(self.absolute_path, 'data/forcast', date)
@@ -197,7 +268,11 @@ class RollPrediction(object):
             asc_folder = os.path.join(date_dir_name, self.var_simple)
             if not os.path.exists(asc_folder):
                 os.mkdir(asc_folder)
-            asc_path = os.path.join(asc_folder, 'Forcast' + self.var_simple + '_' + fig_name + '.asc')
+            if self.var_simple == 'sss':
+                asc_name = int(fig_name) * 8
+                asc_path = os.path.join(asc_folder, 'Forcast' + self.var_simple + '_' + str(asc_name) + '.asc')
+            else:
+                asc_path = os.path.join(asc_folder, 'Forcast' + self.var_simple + '_' + fig_name + '.asc')
         elif mode == 'C':
             asc_folder = os.path.join(date_dir_name, 'bc_' + self.var_simple)
             if not os.path.exists(asc_folder):
@@ -208,8 +283,11 @@ class RollPrediction(object):
             f.write(bytes(header, 'utf-8'))
             np.savetxt(f, asc_data)
 
-    def save_npy(self, fig_name, date, hour=None, mode='F'):
-        npy_data = self.get_predict_result()[0]
+    def save_npy(self, fig_name, date, data=None, hour=None, mode='F'):
+        if data is None:
+            npy_data = self.get_predict_result()[0]
+        else:
+            npy_data = data
         npy_data = np.flip(npy_data, axis=0)
         npy_data = self.__k2c__(npy_data)
         date_dir_name = os.path.join(self.absolute_path, 'data/forcast', date)
@@ -224,7 +302,15 @@ class RollPrediction(object):
             npy_folder = os.path.join(date_dir_name, 'bc_' + self.var_simple)
             if not os.path.exists(npy_folder):
                 os.mkdir(npy_folder)
-            npy_path = os.path.join(npy_folder, fig_name + '_' + str(hour) + 'h.npy')
+            npy_path = os.path.join(npy_folder, fig_name + '_' + str(hour) + '.npy')
 
         np.save(npy_path, npy_data)
 
+    def get_rmse_cor(self, gt_data):
+        predict_data = self.get_predict_result()[0]
+        w, h = predict_data.shape
+        rmse = np.sqrt(np.sum((gt_data - predict_data) ** 2) / (w*h))
+        gt_f = gt_data.flatten()
+        predict_f = predict_data.flatten()
+        cor = np.corrcoef(predict_f, gt_f)[0, -1]
+        return rmse, cor

@@ -2,7 +2,7 @@ import argparse
 import os
 import datetime
 from parameters import ele_dir
-from get_elements import predict_sal, predict_elements, bias_correction, predict_3DT, predict_3DS
+from get_elements import predict_sal, predict_elements, bias_addtion, predict_3DT_test, predict_3DS_test, predict_elements_test, predict_sst_test, predict_sal_test, predict_swh_test, predict_3DS, predict_3DT
 
 parser = argparse.ArgumentParser(description='Ocean-Elements-Forecasting-System')
 
@@ -19,6 +19,7 @@ parser.add_argument('--resolution', type=str, required=True, default='0.25', hel
 # 7.10新增参数日期
 parser.add_argument('--date', type=str, required=True, default='20210619000000', help='forcasting date')
 parser.add_argument('--mode', type=str, required=True, default='F', help='running mode,options:[F, C]')
+parser.add_argument('--test', type=str, required=True, default=False, help='test,options:[True, False]')
 
 args = parser.parse_args()
 assert args.mode in ['F', 'C'], 'Mode Type Error'
@@ -26,33 +27,74 @@ BJS = datetime.datetime.strptime(args.date, '%Y%m%d%H%M%S')
 path = os.path.dirname(__file__)    # 项目文件路径
 
 
-# 7.10 时间转换还存在问题，前端给的是北京时间，应当转换为格林尼治时间，并且文件里的0代表格林尼治时间的12点，所以应当再减去12小时
 # 7.11 除了盐的时间分辨率是1天，其他的时间分辨率都是3小时
-if args.mode == 'F':
-    if args.element == 'sss':
-        # 本身是北京时间，所以不用变
-        date_time = BJS.strftime('%Y%m%d')
-        predict_sal(path, ele_dir[args.element][args.type], date_time, args.element, args)
-    elif args.element == '3DS':
-        date_time = BJS.strftime('%Y%m%d')
-        predict_3DS(path, ele_dir[args.element][args.type], date_time, args)
-    else:
-        date_time = BJS + datetime.timedelta(hours=-12)
-        date_time_1 = date_time + datetime.timedelta(days=-1)
-        date_time_1 = date_time_1.strftime('%Y%m%d')
-        date_time_2 = date_time + datetime.timedelta(days=-2)
-        date_time_2 = date_time_2.strftime('%Y%m%d')
-        source_1 = os.path.join(date_time_1, ele_dir[args.element][args.type])
-        source_2 = os.path.join(date_time_2, ele_dir[args.element][args.type])
-        # predict_sst(path, ele_dir[args.element][args.type], date_time, args)
-        if args.element == '3DT':
-            predict_3DT(path, source_1, source_2, args)
+if args.test == 'True':
+    if args.mode == 'F':
+        if args.element == 'sss':
+            # 本身是北京时间，所以不用变
+            date_time = BJS.strftime('%Y%m%d')
+            # predict_sal(path, ele_dir[args.element][args.type], date_time, args.element, args)
+            predict_sal_test(path, ele_dir[args.element][args.type], date_time, args.element, args)
+        elif args.element == '3DS':
+            date_time = BJS.strftime('%Y%m%d')
+            predict_3DS_test(path, ele_dir[args.element][args.type], date_time, args)
+        elif args.element == '3DT':
+            date_time = BJS.strftime('%Y%m%d')
+            predict_3DT_test(path, ele_dir[args.element][args.type], date_time, args)
         else:
+            date_time = BJS + datetime.timedelta(hours=-12)
+            date_time_1 = date_time + datetime.timedelta(days=-1)
+            date_time_1 = date_time_1.strftime('%Y%m%d')
+            date_time_2 = date_time + datetime.timedelta(days=-2)
+            date_time_2 = date_time_2.strftime('%Y%m%d')
+            date_time = date_time.strftime('%Y%m%d')
+            # source = os.path.join(date_time, ele_dir[args.element][args.type])
+            source_1 = os.path.join(date_time_1, ele_dir[args.element][args.type])
+            source_2 = os.path.join(date_time_2, ele_dir[args.element][args.type])
+
+            # predict_elements(path, source_1, source_2, args.element, args)
+            if args.element == 'win':
+                predict_elements_test(path, date_time, source_1, source_2, args.element, args)
+            elif args.element == 'swh':
+                predict_swh_test(path, ele_dir[args.element][args.type], date_time, args.element, args)
+            else:
+                predict_sst_test(path, ele_dir[args.element][args.type], date_time, args.element, args)
+    elif args.mode == 'C':
+        date_time = BJS + datetime.timedelta(hours=-12)
+        date_time = date_time.strftime('%Y%m%d%H%M%S')
+        date_folder = date_time[:8]
+        hour = int(date_time[8:10])
+        source = os.path.join(date_folder, ele_dir[args.element][args.type])
+        bias_addtion(path, source, hour, args)
+else:
+    if args.mode == 'F':
+        if args.element == 'sss':
+            # 本身是北京时间，所以不用变
+            date_time = BJS.strftime('%Y%m%d')
+            predict_sal(path, ele_dir[args.element][args.type], date_time, args.element, args)
+            # predict_sal_test(path, ele_dir[args.element][args.type], date_time, args.element, args)
+        elif args.element == '3DS':
+            date_time = BJS.strftime('%Y%m%d')
+            predict_3DS(path, ele_dir[args.element][args.type], date_time, args)
+        elif args.element == '3DT':
+            date_time = BJS.strftime('%Y%m%d')
+            predict_3DT(path, ele_dir[args.element][args.type], date_time, args)
+        else:
+            date_time = BJS + datetime.timedelta(hours=-12)
+            date_time_1 = date_time + datetime.timedelta(days=-1)
+            date_time_1 = date_time_1.strftime('%Y%m%d')
+            date_time_2 = date_time + datetime.timedelta(days=-2)
+            date_time_2 = date_time_2.strftime('%Y%m%d')
+            # date_time = date_time.strftime('%Y%m%d')
+            # source = os.path.join(date_time, ele_dir[args.element][args.type])
+            source_1 = os.path.join(date_time_1, ele_dir[args.element][args.type])
+            source_2 = os.path.join(date_time_2, ele_dir[args.element][args.type])
+
             predict_elements(path, source_1, source_2, args.element, args)
-elif args.mode == 'C':
-    date_time = BJS + datetime.timedelta(hours=-12)
-    date_time = date_time.strftime('%Y%m%d%H%M%S')
-    date_folder = date_time[:8]
-    hour = int(date_time[8:10])
-    source = os.path.join(date_folder, ele_dir[args.element][args.type])
-    bias_correction(path, source, hour, args)
+    elif args.mode == 'C':
+        date_time = BJS + datetime.timedelta(hours=-12)
+        date_time = date_time.strftime('%Y%m%d%H%M%S')
+        date_folder = date_time[:8]
+        hour = int(date_time[8:10])
+        source = os.path.join(date_folder, ele_dir[args.element][args.type])
+        bias_addtion(path, source, hour, args)

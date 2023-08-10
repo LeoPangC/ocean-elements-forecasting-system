@@ -137,9 +137,11 @@ def save_asc(absolute_path, asc_data, fig_name, lonX, latY, step, var_simple):
         np.savetxt(f, asc_data)
 
 
-def save_json(absolute_path, data, fig_name, date, var_simple):
-    if var_simple == '3DT':
-        data = data - 273.15
+def save_json(absolute_path, data, fig_name, date, var_simple, mask):
+    # if var_simple == '3DT':
+    #     data = data - 273.15
+    for i in range(data.shape[0]):
+        data[i, mask] = np.ma.masked
     data = np.flip(data, axis=0)
     data = np.reshape(data, (1, -1))
     data = np.squeeze(data)
@@ -155,8 +157,6 @@ def save_json(absolute_path, data, fig_name, date, var_simple):
 
 
 def save_npy(absolute_path, data, fig_name, date, var_simple):
-    if var_simple == '3DT':
-        data = data - 273.15
     # data = np.flip(data, axis=0)
     # data = np.reshape(data, (1, -1))
     # data = np.squeeze(data)
@@ -166,5 +166,32 @@ def save_npy(absolute_path, data, fig_name, date, var_simple):
     npy_folder = os.path.join(date_dir_name, var_simple)
     if not os.path.exists(npy_folder):
         os.mkdir(npy_folder)
-    npy_path = os.path.join(npy_folder, 'Forcast' + var_simple + '_' + fig_name + '.npy')
+    npy_path = os.path.join(npy_folder, 'Forcast' + var_simple + '_' + str((int(fig_name) + 1)*24) + '.npy')
     np.save(npy_path, data)
+
+
+# 7.29 对缺失值进行插值
+def fill_missing_values(arr):
+    rows, cols = arr.shape
+    # 遍历数组的每一行
+    for i in range(rows):
+        row = arr[i]
+        # 获取当前行中已知值的索引
+        known_indices = np.where(np.isfinite(row))[0]
+        # 获取当前行中缺失值的索引
+        missing_indices = np.where(np.isnan(row))[0]
+        # 如果至少有两个已知值，则进行插值填充
+        if len(known_indices) >= 2:
+            # 获取已知值
+            known_values = row[known_indices]
+            # 使用插值方法填充缺失值
+            missing_values = np.interp(missing_indices, known_indices, known_values)
+            # 将填充后的值赋值回原数组
+            row[missing_indices] = missing_values
+    return arr
+
+
+def get_bcr(gt_data, predict_data):
+    w, h = predict_data.shape
+    rmse = np.sqrt(np.sum((gt_data - predict_data) ** 2) / (w * h))
+    return rmse
